@@ -1,17 +1,17 @@
 # MatchOracle
 
-**AI-powered, multi-agent prediction platform — flagship mission: the FIFA World Cup 2026.**
+**AI-powered, multi-agent prediction platform - flagship mission: the FIFA World Cup 2026.**
 
 MatchOracle predicts football outcomes by combining several specialised *agents*
-— each reasoning over a different facet of the problem (history, momentum,
-context, risk, market strength, and LLM judgement) — and aggregating their views
+- each reasoning over a different facet of the problem (history, momentum,
+context, risk, market strength, and LLM judgement) - and aggregating their views
 into a single **explainable** prediction with a confidence score. The engine
 keeps a domain-agnostic core but is currently tuned for the World Cup 2026
 (48 teams, 104 matches, group stage → knockout bracket → champion).
 
 It does more than guess a winner: it predicts the **exact scoreline** (Poisson
 goals model), **group standings & qualification**, the **knockout bracket**, and
-the **tournament champion** — and it **improves itself** from real results with
+the **tournament champion** - and it **improves itself** from real results with
 no human in the loop.
 
 ---
@@ -42,7 +42,7 @@ runs a **panel of specialists** and resolves their disagreement explicitly. Each
 agent emits a normalised `score ∈ [0, 1]` and a `confidence ∈ [0, 1]`; an
 orchestration layer weights and fuses them, surfaces conflict, and grounds the
 result in a human-readable explanation. Agents can be added, removed, benchmarked
-and re-weighted **without touching the graph** — the orchestrator discovers them
+and re-weighted **without touching the graph** - the orchestrator discovers them
 from a registry.
 
 ## Architecture
@@ -100,7 +100,7 @@ returns a normalised `AgentResult`.
 |---|---|
 | **Historical** | Long-run relative win rate (from FIFA-ranking strength + head-to-head) |
 | **Trend** | Recent momentum / short-term form |
-| **Contextual** | Real environmental factors — e.g. **World Cup host-nation advantage** (USA/Canada/Mexico), or a News-Feed signal via MCP |
+| **Contextual** | Real environmental factors - e.g. **World Cup host-nation advantage** (USA/Canada/Mexico), or a News-Feed signal via MCP |
 | **Risk** | Uncertainty / volatility of the matchup, exposes a `risk_level` |
 | **Market** | Relative team strength (the "market consensus" proxy) |
 | **Expert (LLM)** | Qualitative reasoning over the peers' outputs; falls back to a deterministic, grounded synthesis when no LLM is reachable |
@@ -125,13 +125,13 @@ Default weights (sum ≈ 1.0):
   "risk": 0.15, "market": 0.10, "expert": 0.15 }
 ```
 
-Weights are **not static** — see [self-improvement](#self-improvement-autonomous-feedback-loop).
+Weights are **not static** - see [self-improvement](#self-improvement-autonomous-feedback-loop).
 The current vector is cached so workers share one source of truth.
 
 ## The prediction algorithm
 
 For a two-team matchup MatchOracle predicts the **final score** with a
-**Poisson goals model** — the standard approach in football analytics.
+**Poisson goals model** - the standard approach in football analytics.
 
 1. **Strength → expected goals (λ).** Each team's strength `s ∈ (0, 1]` comes
    from its FIFA ranking (blended with live form when available). The expected
@@ -152,7 +152,7 @@ For a two-team matchup MatchOracle predicts the **final score** with a
    - the **outcome probabilities** `P(home) / P(draw) / P(away)`,
    - the **top scorelines** with probabilities.
 
-   > Note: the reported score is the *mode*, not the mean — `mode(Poisson(λ)) =
+   > Note: the reported score is the *mode*, not the mean - `mode(Poisson(λ)) =
    > ⌊λ⌋`. With these constants λ tops out around 2.8 even for the biggest
    > mismatch, so the single most probable scoreline is intentionally
    > low-scoring (e.g. `2-0`). This **maximises exact-score hit probability**;
@@ -167,26 +167,26 @@ For a two-team matchup MatchOracle predicts the **final score** with a
    (`app/prediction/group.py`, `tournament.py`).
 
 5. **Calibration.** The score-model constants can be **fit to real results**
-   once enough matches are played (`app/prediction/calibration.py`) — dormant at
+   once enough matches are played (`app/prediction/calibration.py`) - dormant at
    kickoff, then self-tuning.
 
 ## Self-improvement (autonomous feedback loop)
 
 MatchOracle closes the loop with **no human in it**:
 
-- **Accuracy tracking** — predicted vs actual: 1X2 accuracy, exact-score
+- **Accuracy tracking** - predicted vs actual: 1X2 accuracy, exact-score
   accuracy, mean goal error, and **Brier score**.
-- **Per-agent benchmarking** — directional accuracy, confidence calibration gap,
+- **Per-agent benchmarking** - directional accuracy, confidence calibration gap,
   contribution, and an `underperforming` flag (worse than a coin flip).
-- **Auto-weighting** — measured per-agent accuracy nudges the weight vector with
+- **Auto-weighting** - measured per-agent accuracy nudges the weight vector with
   **guardrails** (per-agent clamp + bounded learning rate), so a noisy window
   can't collapse the vector. A `rollback` restores the defaults.
-- **Autonomous ingestion** — as real World Cup matches finish, results are
+- **Autonomous ingestion** - as real World Cup matches finish, results are
   auto-attached to the engine's full-agent predictions and a directional label
   (home win / away win; draws skipped) re-tunes the weights. This runs every
-  scheduler cycle during the tournament — the agents that track reality gain
+  scheduler cycle during the tournament - the agents that track reality gain
   weight on their own.
-- **Human-in-the-loop (optional)** — an `approve / reject / correct` verdict can
+- **Human-in-the-loop (optional)** - an `approve / reject / correct` verdict can
   still feed the same guardrailed loop, but it is no longer required.
 
 ## Explainability
@@ -207,10 +207,10 @@ Every prediction ships with its evidence:
 
 ## MCP & connectors
 
-- **MCP** — a sync-friendly Model Context Protocol client. The Contextual agent
+- **MCP** - a sync-friendly Model Context Protocol client. The Contextual agent
   can consume an MCP resource (e.g. a News-Feed server) over stdio via the
   official SDK, with a built-in demo source so it works out of the box.
-- **Connectors** — real data behind a `BaseConnector`: the World Cup connector
+- **Connectors** - real data behind a `BaseConnector`: the World Cup connector
   (FIFA-ranking strengths + live form/results from **football-data.org**) and an
   OpenLigaDB connector. Adding a source is a new subclass.
 
@@ -219,13 +219,13 @@ Every prediction ships with its evidence:
 All gated behind feature flags (off by default), so the open deployment stays
 simple:
 
-- **Multi-tenancy & RBAC** — JWT auth, `viewer < analyst < admin` roles, strict
+- **Multi-tenancy & RBAC** - JWT auth, `viewer < analyst < admin` roles, strict
   per-tenant data isolation, audit logging, and a secret backend (env or Vault).
-- **Observability** — Prometheus metrics (`/metrics`), request instrumentation,
+- **Observability** - Prometheus metrics (`/metrics`), request instrumentation,
   structured JSON logs, plus a Grafana dashboard and alert rules in `deploy/`.
-- **Distributed execution** — a Celery app fans agent work out to workers over
+- **Distributed execution** - a Celery app fans agent work out to workers over
   Redis; runs in-process (eager) by default.
-- **Kubernetes / IaC** — Deployments, Service, CPU HPAs and probes in `deploy/k8s`.
+- **Kubernetes / IaC** - Deployments, Service, CPU HPAs and probes in `deploy/k8s`.
 
 ## REST API
 
@@ -278,9 +278,9 @@ uv run pytest                 # full test suite
 
 ## Deployment
 
-- **Docker Compose** — the full stack locally (`docker compose up`). An opt-in
+- **Docker Compose** - the full stack locally (`docker compose up`). An opt-in
   `enterprise` profile adds Prometheus, Grafana, a Celery worker and Vault.
-- **Vercel + Supabase (serverless)** — FastAPI runs as a Vercel Python function
+- **Vercel + Supabase (serverless)** - FastAPI runs as a Vercel Python function
   (`api/index.py`), scheduled by **Vercel Cron**, against **Supabase Postgres**,
   with Claude as the Expert LLM. See `vercel.json`.
 
@@ -288,7 +288,7 @@ uv run pytest                 # full test suite
 
 A comprehensive suite (`tests/`) covers agents, orchestration, the Poisson model,
 group/tournament simulation, accuracy/benchmark/feedback, the autonomous loop,
-auth/RBAC/tenant isolation, observability and the API surface — all runnable
+auth/RBAC/tenant isolation, observability and the API surface - all runnable
 offline (no network, DB or LLM key required).
 
 ```bash
@@ -301,4 +301,4 @@ uv run pytest
 
 > Football data via [football-data.org](https://www.football-data.org/). This
 > project is not affiliated with FIFA. "Most likely scoreline" predictions are
-> for entertainment and research — bet responsibly.
+> for entertainment and research - bet responsibly.
