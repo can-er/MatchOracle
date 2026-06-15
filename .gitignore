@@ -38,3 +38,5 @@ p_test.json
 .obsidian/
 CLAUDE.md
 .claude/
+.env.vercel.local
+.env.*.local
