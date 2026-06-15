@@ -69,14 +69,26 @@ class Base(DeclarativeBase):
 
 
 def _make_engine():
-    connect_args = {"check_same_thread": False} if settings.is_sqlite else {}
-    return create_engine(
-        settings.database_url,
-        echo=False,
-        future=True,
-        pool_pre_ping=not settings.is_sqlite,
-        connect_args=connect_args,
-    )
+    if settings.is_sqlite:
+        return create_engine(
+            settings.database_url,
+            echo=False,
+            future=True,
+            connect_args={"check_same_thread": False},
+        )
+
+    connect_args: dict = {}
+    kwargs: dict = {"echo": False, "future": True, "pool_pre_ping": True}
+    if settings.db_serverless:
+        # Serverless (Vercel) behind the Supabase pooler: don't hold a connection
+        # pool in the function - let pgBouncer pool - and disable psycopg's
+        # server-side prepared statements (incompatible with transaction pooling).
+        from sqlalchemy.pool import NullPool
+
+        kwargs["poolclass"] = NullPool
+        if settings.database_url.startswith("postgresql+psycopg"):
+            connect_args["prepare_threshold"] = None
+    return create_engine(settings.database_url, connect_args=connect_args, **kwargs)
 
 
 engine = _make_engine()

@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # without Postgres; docker compose overrides this with the Postgres URL.
     database_url: str = "sqlite+pysqlite:///./matchoracle.db"
     redis_url: str = "redis://localhost:6379/0"
+    # Cache backend: "redis" (default/local) | "postgres" (durable, serverless) | "memory".
+    cache_backend: str = "redis"
+    # Serverless DB tuning for the Supabase pooler (pgBouncer transaction mode):
+    # NullPool + no server-side prepared statements. Enable on Vercel.
+    db_serverless: bool = False
 
     # --- LLM ---
     llm_provider: str = "openai"

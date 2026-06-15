@@ -166,3 +166,20 @@ class AuditLog(Base, TenantMixin):
     resource: Mapped[str | None] = mapped_column(String(256), nullable=True)
     detail: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow, index=True)
+
+
+class KeyValue(Base):
+    """Generic durable key-value store (Vercel/Supabase migration, phase 2).
+
+    Backs the Postgres cache backend so process-global state - the agent weight
+    vector today, the rotating MPP token later - survives across stateless
+    serverless invocations, replacing Redis. ``expires_at`` is epoch seconds
+    (DB-agnostic, no timezone pitfalls).
+    """
+
+    __tablename__ = "kv_store"
+
+    key: Mapped[str] = mapped_column(String(255), primary_key=True)
+    value: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    expires_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)

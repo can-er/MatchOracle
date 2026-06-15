@@ -1,22 +1,21 @@
-"""Redis cache with a transparent in-memory fallback (Sprint 01).
+"""Redis cache backend with a transparent in-memory fallback (Sprint 01).
 
-If Redis is unreachable (e.g. tests/CI without a server) the cache degrades to a
-process-local dict so the rest of the app keeps working.
+If Redis is unreachable (e.g. tests/CI without a server) the backend degrades to
+a process-local dict so the rest of the app keeps working. ``redis`` is imported
+lazily, so it isn't a hard dependency unless this backend is selected.
 """
 
 from __future__ import annotations
 
 import json
-from functools import lru_cache
 from typing import Any
 
-from app.config import settings
 from app.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
-class Cache:
+class RedisCache:
     """Minimal get/set/delete cache over Redis, falling back to memory."""
 
     def __init__(self, url: str) -> None:
@@ -59,6 +58,5 @@ class Cache:
             self._memory.pop(key, None)
 
 
-@lru_cache
-def get_cache() -> Cache:
-    return Cache(settings.redis_url)
+# Backwards-compatible alias (the class used to be named ``Cache``).
+Cache = RedisCache
