@@ -159,7 +159,7 @@ def test_openai_complete_returns_deterministic_fallback() -> None:
     assert resp.fallback is True
     # Fallback carries the *configured* provider (proves config switching).
     assert resp.provider == "openai"
-    # Non-empty, deterministic text — never asserting on live LLM output.
+    # Non-empty, deterministic text - never asserting on live LLM output.
     assert isinstance(resp.text, str)
     assert resp.text.strip() != ""
     assert "fallback" in resp.text.lower()
@@ -175,6 +175,31 @@ def test_openai_fallback_is_deterministic_across_runs() -> None:
         second.model,
         second.fallback,
     )
+
+
+# --------------------------------------------------------------------------- #
+# Provider: config-driven switching + safe degradation (Anthropic)
+# --------------------------------------------------------------------------- #
+def test_anthropic_provider_unavailable_without_key() -> None:
+    # No API key is configured in the test env, so the client cannot be built.
+    # The no-key guard runs *before* the langchain_anthropic import, so this
+    # passes without a live key and without any network access.
+    provider = LLMProvider(provider="anthropic", model="claude-opus-4-8")
+    assert provider.provider == "anthropic"
+    assert provider.available is False
+
+
+def test_anthropic_complete_returns_deterministic_fallback() -> None:
+    provider = LLMProvider(provider="anthropic", model="claude-opus-4-8")
+    resp = provider.complete("hi")
+    assert isinstance(resp, LLMResponse)
+    assert resp.fallback is True
+    # Fallback carries the *configured* provider (proves config switching).
+    assert resp.provider == "anthropic"
+    # Non-empty, deterministic, grounded text - never asserting on live output.
+    assert isinstance(resp.text, str)
+    assert resp.text.strip() != ""
+    assert "fallback" in resp.text.lower()
 
 
 # --------------------------------------------------------------------------- #

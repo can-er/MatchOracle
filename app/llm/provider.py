@@ -1,7 +1,8 @@
 """Configurable LLM provider (Sprint 04).
 
-Wraps LangChain chat models for OpenAI and Ollama behind one interface. The
-provider is resilient by design (Sprint 04 DoD — LLM errors must never block a
+Wraps LangChain chat models for OpenAI, Anthropic and Ollama behind one
+interface. The
+provider is resilient by design (Sprint 04 DoD - LLM errors must never block a
 prediction): on missing credentials, timeouts or exceptions it returns a
 deterministic, grounded fallback so the pipeline keeps running.
 """
@@ -55,6 +56,20 @@ class LLMProvider:
                 self._client = ChatOpenAI(
                     model=self.model,
                     api_key=settings.openai_api_key,
+                    timeout=self.timeout,
+                    max_retries=self.max_retries,
+                )
+            elif self.provider == "anthropic":
+                if (
+                    not settings.anthropic_api_key
+                    or settings.anthropic_api_key.startswith("sk-replace")
+                ):
+                    raise RuntimeError("Anthropic API key not configured")
+                from langchain_anthropic import ChatAnthropic
+
+                self._client = ChatAnthropic(
+                    model=self.model,
+                    api_key=settings.anthropic_api_key,
                     timeout=self.timeout,
                     max_retries=self.max_retries,
                 )

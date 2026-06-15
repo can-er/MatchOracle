@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     llm_provider: str = "openai"
     llm_model: str = "gpt-4o-mini"
     openai_api_key: str = ""
+    anthropic_api_key: str = ""  # Claude (Expert agent on the serverless path)
     ollama_base_url: str = "http://localhost:11434"
     llm_router_policy: str = "balanced"
     llm_timeout_seconds: int = 30
@@ -99,6 +100,15 @@ class Settings(BaseSettings):
     football_data_base_url: str = "https://api.football-data.org/v4"
     football_data_api_key: str = ""  # free key for football-data.org (live WC form/results)
     wc_competition: str = "WC"
+
+    # --- Mon Petit Prono submission (phase 4; gated, off by default) ---
+    mpp_enabled: bool = False
+    mpp_api_base: str = "https://api.mpp.football"
+    mpp_auth0_domain: str = "https://connect.ligue1.fr"
+    mpp_auth0_client_id: str = "grX5jWGWWQ4Uq91oe7KPNDZ96FS3jr0X"  # public SPA client (PKCE)
+    mpp_auth0_audience: str = "https://mpp.ligue1.fr"
+    mpp_refresh_token: str = ""  # seed once; rotation persisted to the kv_store
+    mpp_championship_id: int = 8
 
     @field_validator("agent_weights", mode="before")
     @classmethod

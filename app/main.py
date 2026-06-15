@@ -5,7 +5,7 @@ Exposes the ``app`` ASGI object used by uvicorn (``uvicorn app.main:app``):
 - the versioned REST surface under ``settings.api_prefix`` (Sprint 06)
 
 The database schema is managed by Alembic migrations (``alembic upgrade head``),
-applied as a separate step — not at app startup.
+applied as a separate step - not at app startup.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Startup/shutdown hooks.
 
     The schema is owned by Alembic migrations (``alembic upgrade head``), run as a
-    separate step (container entrypoint / CI / local) — never at app startup.
+    separate step (container entrypoint / CI / local) - never at app startup.
     """
     logger.info("app.startup", database=settings.database_url.split("://")[0])
     yield
@@ -82,10 +82,10 @@ def create_app() -> FastAPI:
 
     @app.get("/api/cron/tick", include_in_schema=False)
     def cron_tick(request: Request) -> dict:
-        """Vercel Cron entrypoint (daily). Phase 1: authenticated stub.
+        """Vercel Cron entrypoint (daily). Phase 5.
 
-        Phase 5 fills this in: refresh World Cup predictions → autonomous_learn →
-        find the next open MPP game week → predict full-agents → submit forecasts.
+        Refresh World Cup predictions + run the autonomous feedback loop, then
+        submit MatchOracle's forecasts for the next open MPP game week.
         Vercel sends ``Authorization: Bearer $CRON_SECRET`` when CRON_SECRET is set.
         """
         import os
@@ -93,8 +93,15 @@ def create_app() -> FastAPI:
         secret = os.environ.get("CRON_SECRET")
         if secret and request.headers.get("authorization") != f"Bearer {secret}":
             return JSONResponse({"error": "unauthorized"}, status_code=401)
-        logger.info("cron.tick.stub")
-        return {"status": "stub", "todo": "phase 5: refresh + autonomous_learn + MPP submit"}
+
+        from app.db.base import SessionLocal
+        from app.tasks.mpp_cron import run_cron_tick
+
+        session = SessionLocal()
+        try:
+            return run_cron_tick(session)
+        finally:
+            session.close()
 
     @app.get("/", include_in_schema=False)
     @app.get("/dashboard", include_in_schema=False)

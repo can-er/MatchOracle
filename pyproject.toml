@@ -42,10 +42,11 @@ dependencies = [
     "prometheus-client>=0.20",
     "structlog>=24.1",
     "langchain-ollama>=1.1.0",
+    "langchain-anthropic>=1.4.6",
 ]
 
 # Dev dependencies as a uv dependency group (PEP 735): installed by default on
-# `uv sync`. Single source of truth — no requirements.txt.
+# `uv sync`. Single source of truth - no requirements.txt.
 [dependency-groups]
 dev = [
     "pytest>=8.2",
