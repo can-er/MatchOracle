@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Environment / secrets
+.env
+
+# Local databases
+*.db
+matchoracle.db
+
+# Transient request-body test artifacts
+body.json
+
+# Obsidian per-user workspace state (keep the rest of the vault)
+**/.obsidian/workspace*.json
+
+# OS
+.DS_Store
+Thumbs.db
+wc_full_predictions.jsonl
+gw3_payload.json
+p_test.json
+
+# Internal docs / not for public mirror
+.vault/
+.obsidian/
+CLAUDE.md
+.claude/

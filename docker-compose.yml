@@ -1,0 +1,172 @@
+name: matchoracle
+
+# All third-party components (Postgres, Redis, Ollama) run as containers, and so
+# does the app — `docker compose up` brings the whole stack online.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: matchoracle-app
+    environment:
+      MO_ENV: ${MO_ENV:-development}
+      MO_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-matchoracle}:${POSTGRES_PASSWORD:-matchoracle}@postgres:5432/${POSTGRES_DB:-matchoracle}
+      MO_REDIS_URL: redis://redis:6379/0
+      MO_OPENAI_API_KEY: ${MO_OPENAI_API_KEY:-}
+      # Real reasoning via a containerized Ollama model (Expert agent).
+      MO_LLM_PROVIDER: ${MO_LLM_PROVIDER:-ollama}
+      MO_LLM_MODEL: ${MO_LLM_MODEL:-qwen2.5:7b}
+      MO_OLLAMA_BASE_URL: http://ollama:11434
+      MO_LLM_TIMEOUT_SECONDS: ${MO_LLM_TIMEOUT_SECONDS:-120}
+      # World Cup live data — value comes from .env (gitignored), never hard-coded.
+      MO_FOOTBALL_DATA_API_KEY: ${MO_FOOTBALL_DATA_API_KEY:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  # Periodic prediction refresh during the tournament (Sprint WC-5).
+  # Re-predicts the group-stage matchdays and persists a snapshot every interval,
+  # picking up real results as matches finish. Uses the fast score-model path
+  # (no LLM), so no Ollama dependency.
+  scheduler:
+    image: matchoracle-app
+    environment:
+      MO_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-matchoracle}:${POSTGRES_PASSWORD:-matchoracle}@postgres:5432/${POSTGRES_DB:-matchoracle}
+      MO_REDIS_URL: redis://redis:6379/0
+      MO_FOOTBALL_DATA_API_KEY: ${MO_FOOTBALL_DATA_API_KEY:-}
+      MO_REFRESH_INTERVAL: ${MO_REFRESH_INTERVAL:-21600}
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - 'while true; do uv run --no-dev python -m app.tasks.refresh || true; sleep "$${MO_REFRESH_INTERVAL:-21600}"; done'
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-matchoracle}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-matchoracle}
+      POSTGRES_DB: ${POSTGRES_DB:-matchoracle}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-matchoracle}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Local LLM runtime (real Expert-agent reasoning) — containerized, CPU by default.
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  # One-shot: pull the model, then exit. The app waits for this to complete.
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c", "ollama pull ${MO_LLM_MODEL:-qwen2.5:7b}"]
+    restart: "no"
+
+  # --- Enterprise posture (Sprint 13/14): opt-in via `--profile enterprise`. ---
+  # Distributed agent execution (Sprint 14): a Celery worker on the Redis broker.
+  worker:
+    image: matchoracle-app
+    profiles: ["enterprise"]
+    environment:
+      MO_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-matchoracle}:${POSTGRES_PASSWORD:-matchoracle}@postgres:5432/${POSTGRES_DB:-matchoracle}
+      MO_REDIS_URL: redis://redis:6379/0
+      MO_CELERY_BROKER_URL: redis://redis:6379/1
+      MO_CELERY_RESULT_BACKEND: redis://redis:6379/2
+      MO_DISTRIBUTED_AGENTS: "true"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["uv", "run", "--no-dev", "celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
+
+  # Metrics scraping (Sprint 14): Prometheus scrapes the app's /metrics.
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: ["enterprise"]
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+
+  # Dashboards (Sprint 14): Grafana, pre-provisioned with Prometheus + a board.
+  grafana:
+    image: grafana/grafana:latest
+    profiles: ["enterprise"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  # Secret store (Sprint 13). Dev mode — never use the dev server in production.
+  vault:
+    image: hashicorp/vault:1.17
+    profiles: ["enterprise"]
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${MO_VAULT_TOKEN:-dev-root-token}
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    command: ["server", "-dev"]
+
+volumes:
+  pgdata:
+  redisdata:
+  ollama_data:

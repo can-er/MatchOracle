@@ -1,0 +1,45 @@
+# Distributed agent workers (Sprint 14, story 14-1) — Celery on the Redis broker.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matchoracle-worker
+  namespace: matchoracle
+  labels: { app: matchoracle, component: worker }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: matchoracle, component: worker }
+  template:
+    metadata:
+      labels: { app: matchoracle, component: worker }
+    spec:
+      containers:
+        - name: worker
+          image: matchoracle-app:latest
+          command: ["uv", "run", "--no-dev", "celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
+          envFrom:
+            - secretRef: { name: matchoracle-secrets }
+          env:
+            - name: MO_DISTRIBUTED_AGENTS
+              value: "true"
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: matchoracle-worker
+  namespace: matchoracle
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: matchoracle-worker
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 75 }

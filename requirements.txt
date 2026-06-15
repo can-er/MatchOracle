@@ -1,0 +1,21 @@
+# ⚠️ Vercel build manifest ONLY — NOT the project's dependency source of truth.
+# pyproject.toml (managed with uv) remains authoritative for local/dev/CI.
+# Vercel's @vercel/python builder requires a requirements.txt, so this is a
+# slimmed RUNTIME subset for the serverless function (drops celery, alembic,
+# uvicorn, langchain-openai/ollama/community, jinja2, mcp SDK — none imported at
+# app startup on the serverless path). Keep in sync with pyproject when deps move.
+fastapi>=0.115
+pydantic>=2.7
+pydantic-settings>=2.3
+python-multipart>=0.0.9
+sqlalchemy>=2.0
+psycopg[binary]>=3.1
+redis>=5.0
+langgraph>=0.2
+langchain-core>=0.3
+langchain-anthropic>=0.2
+httpx>=0.27
+pyjwt>=2.8
+passlib[bcrypt]>=1.7
+structlog>=24.1
+prometheus-client>=0.20

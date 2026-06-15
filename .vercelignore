@@ -1,0 +1,24 @@
+# Keep the serverless bundle small (<250 MB) and cold starts fast.
+.git
+.venv
+.vault
+.obsidian
+deploy
+tests
+scripts
+.github
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.coverage
+*.jsonl
+gw3_payload.json
+p_test.json
+docker-compose.yml
+Dockerfile
+.dockerignore
+alembic
+alembic.ini
+matchoracle.egg-info
+*.lock
+uv.lock

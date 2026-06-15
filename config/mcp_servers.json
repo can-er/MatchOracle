@@ -1,0 +1,10 @@
+{
+  "servers": [
+    {
+      "name": "demo-news",
+      "transport": "builtin",
+      "role": "contextual",
+      "description": "In-process demo News Feed MCP source (deterministic sentiment; abstains on the live World Cup domain)."
+    }
+  ]
+}

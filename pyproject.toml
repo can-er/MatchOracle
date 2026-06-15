@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "matchoracle"
+version = "0.1.0"
+description = "AI-Powered Multi-Agent Prediction Platform"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "MatchOracle Team" }]
+dependencies = [
+    # --- Web / API ---
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "python-multipart>=0.0.9",
+    "jinja2>=3.1",
+    # --- Persistence ---
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.1",
+    "redis>=5.0",
+    # --- AI / Orchestration ---
+    "langgraph>=0.2",
+    "langchain>=0.3",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.2",
+    "langchain-community>=0.3",
+    # --- MCP ---
+    "mcp>=1.0",
+    # --- Connectors ---
+    "httpx>=0.27",
+    # --- Auth / Security ---
+    "pyjwt>=2.8",
+    "passlib[bcrypt]>=1.7",
+    # --- Distributed execution ---
+    "celery>=5.4",
+    # --- Observability ---
+    "prometheus-client>=0.20",
+    "structlog>=24.1",
+    "langchain-ollama>=1.1.0",
+]
+
+# Dev dependencies as a uv dependency group (PEP 735): installed by default on
+# `uv sync`. Single source of truth — no requirements.txt.
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "black>=24.4",
+    "mypy>=1.10",
+    "pre-commit>=3.7",
+    "types-redis",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "C4", "SIM"]
+ignore = [
+    "B008",   # FastAPI uses function calls in argument defaults (Depends)
+    "UP042",  # keep (str, Enum) for explicit Pydantic-friendly string enums
+    "UP046",  # keep Generic[T] base (PEP 695 generics interact poorly with Pydantic)
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+warn_unused_ignores = false
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/workers/*", "*/migrations/*"]

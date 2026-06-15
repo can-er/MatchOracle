@@ -1,0 +1,18 @@
+{
+  "_comment": "MPP clubId -> World Cup team, reconstructed from GW2 fixtures. Stable across game weeks. Used to resolve knockout matches by clubId when mapping MatchOracle predictions to MPP submissions.",
+  "championship_id": 8,
+  "clubs": {
+    "367": "Czechia", "522": "South Africa", "497": "Switzerland", "537": "Bosnia-Herzegovina",
+    "597": "Canada", "1873": "Qatar", "659": "Mexico", "1041": "South Korea",
+    "596": "United States", "575": "Australia", "115": "Scotland", "1057": "Morocco",
+    "614": "Brazil", "1327": "Haiti", "362": "Turkey", "835": "Paraguay",
+    "366": "Netherlands", "361": "Sweden", "357": "Germany", "1221": "Ivory Coast",
+    "830": "Ecuador", "6512": "Curaçao", "1224": "Tunisia", "1266": "Japan",
+    "118": "Spain", "1264": "Saudi Arabia", "360": "Belgium", "1042": "Iran",
+    "837": "Uruguay", "1529": "Cape Verde Islands", "1804": "New Zealand", "1225": "Egypt",
+    "632": "Argentina", "515": "Austria", "368": "France", "1800": "Iraq",
+    "363": "Norway", "1226": "Senegal", "1843": "Jordan", "1215": "Algeria",
+    "359": "Portugal", "1359": "Uzbekistan", "114": "England", "1219": "Ghana",
+    "1869": "Panama", "535": "Croatia", "832": "Colombia", "1222": "Congo DR"
+  }
+}
